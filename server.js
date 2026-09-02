@@ -43,7 +43,9 @@ app.post("/api/submit", upload.single("drawing"), async (req, res) => {
     });
 
     await channel.send({
-      content: "🎨 **New 1 Minute Drawing!**\n⏱️ Challenge completed in 60 seconds.",
+      content: `🎨 **New 1 Minute Drawing!**
+👤 **Artist:** ${req.body.name || "Anonymous"}
+⏱️ Challenge completed in 60 seconds.`,
       files: [attachment]
     });
 
