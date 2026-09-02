@@ -9,7 +9,7 @@ const size = document.querySelector("#size");
 const sizeValue = document.querySelector("#sizeValue");
 const preview = document.querySelector("#preview");
 const status = document.querySelector("#status");
-
+const nameInput = document.querySelector("#nameInput");
 let drawing = false;
 let erasing = false;
 let endTime = 0;
@@ -94,10 +94,19 @@ document.querySelector("#backBtn").addEventListener("click", () => {
 });
 
 function startGame() {
+  const playerName = nameInput.value.trim();
+
+  if (!playerName) {
+    nameInput.focus();
+    nameInput.placeholder = "Please enter your name!";
+    return;
+  }
+
   submitted = false;
   show(game);
   requestAnimationFrame(setupCanvas);
   startTimer();
+
   bgMusic.currentTime = 0;
   if (musicEnabled) bgMusic.play().catch(() => {});
 }
