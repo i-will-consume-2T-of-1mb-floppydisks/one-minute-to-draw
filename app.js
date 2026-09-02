@@ -142,7 +142,9 @@ async function finishGame() {
 
   const blob = await (await fetch(image)).blob();
   const form = new FormData();
-  form.append("drawing", blob, "one-minute-drawing.png");
+
+form.append("drawing", blob, "one-minute-drawing.png");
+form.append("name", nameInput.value.trim());
 
   try {
     const response = await fetch("/api/submit", { method: "POST", body: form });
