@@ -1,138 +1,242 @@
-const home = document.querySelector("#home");
-const game = document.querySelector("#game");
-const done = document.querySelector("#done");
-const canvas = document.querySelector("#canvas");
+const home = document.getElementById("home");
+const game = document.getElementById("game");
+const finished = document.getElementById("finished");
+
+const startBtn = document.getElementById("startBtn");
+const againBtn = document.getElementById("againBtn");
+
+const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
-const timer = document.querySelector("#timer");
-const color = document.querySelector("#color");
-const size = document.querySelector("#size");
-const sizeValue = document.querySelector("#sizeValue");
-const preview = document.querySelector("#preview");
-const status = document.querySelector("#status");
+
+const timer = document.getElementById("timer");
+const colorPicker = document.getElementById("colorPicker");
+const sizePicker = document.getElementById("sizePicker");
+const clearBtn = document.getElementById("clearBtn");
+
+const musicBtn = document.getElementById("musicBtn");
+const bgMusic = document.getElementById("bgMusic");
 
 let drawing = false;
-let erasing = false;
-let endTime = 0;
-let timerId = null;
-let submitted = false;
+let timeLeft = 60;
+let timerInterval = null;
+let musicEnabled = true;
 
-function show(screen) {
-  [home, game, done].forEach(s => s.classList.remove("active"));
-  screen.classList.add("active");
+/* -------------------------
+   SCREEN SWITCHING
+------------------------- */
+
+function showScreen(screen) {
+  home.classList.add("hidden");
+  game.classList.add("hidden");
+  finished.classList.add("hidden");
+
+  screen.classList.remove("hidden");
 }
 
-function setupCanvas() {
+/* -------------------------
+   CANVAS
+------------------------- */
+
+function resizeCanvas() {
   const rect = canvas.getBoundingClientRect();
-  const dpr = Math.max(1, window.devicePixelRatio || 1);
-  canvas.width = Math.round(rect.width * dpr);
-  canvas.height = Math.round(rect.height * dpr);
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, rect.width, rect.height);
+
+  const oldCanvas = document.createElement("canvas");
+  oldCanvas.width = canvas.width;
+  oldCanvas.height = canvas.height;
+
+  if (canvas.width && canvas.height) {
+    oldCanvas.getContext("2d").drawImage(canvas, 0, 0);
+  }
+
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (oldCanvas.width && oldCanvas.height) {
+    ctx.drawImage(
+      oldCanvas,
+      0,
+      0,
+      oldCanvas.width,
+      oldCanvas.height,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
+  }
+}
+
+function getPosition(event) {
+  const rect = canvas.getBoundingClientRect();
+
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  };
+}
+
+canvas.addEventListener("pointerdown", (event) => {
+  drawing = true;
+
+  const pos = getPosition(event);
+
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+
+  canvas.setPointerCapture(event.pointerId);
+});
+
+canvas.addEventListener("pointermove", (event) => {
+  if (!drawing) return;
+
+  const pos = getPosition(event);
+
+  ctx.lineWidth = Number(sizePicker.value);
+  ctx.strokeStyle = colorPicker.value;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-}
 
-function position(e) {
-  const rect = canvas.getBoundingClientRect();
-  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-}
-
-function startDraw(e) {
-  if (submitted) return;
-  drawing = true;
-  const p = position(e);
-  ctx.beginPath();
-  ctx.moveTo(p.x, p.y);
-  canvas.setPointerCapture?.(e.pointerId);
-  draw(e);
-}
-function draw(e) {
-  if (!drawing || submitted) return;
-  const p = position(e);
-  ctx.strokeStyle = erasing ? "#ffffff" : color.value;
-  ctx.lineWidth = Number(size.value);
-  ctx.lineTo(p.x, p.y);
+  ctx.lineTo(pos.x, pos.y);
   ctx.stroke();
+
   ctx.beginPath();
-  ctx.moveTo(p.x, p.y);
-}
-function stopDraw() { drawing = false; ctx.beginPath(); }
-
-canvas.addEventListener("pointerdown", startDraw);
-canvas.addEventListener("pointermove", draw);
-canvas.addEventListener("pointerup", stopDraw);
-canvas.addEventListener("pointercancel", stopDraw);
-canvas.addEventListener("pointerleave", stopDraw);
-
-size.addEventListener("input", () => sizeValue.textContent = `${size.value} px`);
-document.querySelector("#eraserBtn").addEventListener("click", () => {
-  erasing = !erasing;
-  document.querySelector("#eraserBtn").textContent = erasing ? "Eraser: ON" : "Eraser";
-});
-document.querySelector("#clearBtn").addEventListener("click", () => {
-  if (!submitted) setupCanvas();
+  ctx.moveTo(pos.x, pos.y);
 });
 
-document.querySelector("#startBtn").addEventListener("click", startGame);
-document.querySelector("#againBtn").addEventListener("click", startGame);
-document.querySelector("#backBtn").addEventListener("click", () => {
-  stopTimer();
-  show(home);
+canvas.addEventListener("pointerup", () => {
+  drawing = false;
+  ctx.beginPath();
 });
 
-function startGame() {
-  submitted = false;
-  show(game);
-  requestAnimationFrame(setupCanvas);
-  startTimer();
+canvas.addEventListener("pointercancel", () => {
+  drawing = false;
+  ctx.beginPath();
+});
+
+/* -------------------------
+   CLEAR BUTTON
+------------------------- */
+
+clearBtn.addEventListener("click", () => {
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+});
+
+/* -------------------------
+   MUSIC
+------------------------- */
+
+musicBtn.addEventListener("click", () => {
+  musicEnabled = !musicEnabled;
+
+  if (musicEnabled) {
+    musicBtn.textContent = "🎵 MUSIC: ON";
+
+    if (timeLeft > 0) {
+      bgMusic.play().catch(() => {});
+    }
+  } else {
+    musicBtn.textContent = "🔇 MUSIC: OFF";
+    bgMusic.pause();
+  }
+});
+
+/* -------------------------
+   TIMER
+------------------------- */
+
+function updateTimer() {
+  const seconds = String(timeLeft).padStart(2, "0");
+  timer.textContent = `00:${seconds}`;
 }
 
 function startTimer() {
-  stopTimer();
-  endTime = Date.now() + 60000;
+  clearInterval(timerInterval);
+
+  timeLeft = 60;
   updateTimer();
-  timerId = setInterval(updateTimer, 100);
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimer();
+
+    if (timeLeft <= 0) {
+      finishDrawing();
+    }
+  }, 1000);
 }
+
 function stopTimer() {
-  if (timerId) clearInterval(timerId);
-  timerId = null;
+  clearInterval(timerInterval);
+  timerInterval = null;
 }
-function updateTimer() {
-  const remaining = Math.max(0, endTime - Date.now());
-  const seconds = Math.ceil(remaining / 1000);
-  timer.textContent = `00:${String(seconds).padStart(2, "0")}`;
-  if (remaining <= 0) {
-    stopTimer();
-    finishGame();
+
+/* -------------------------
+   START GAME
+------------------------- */
+
+function startGame() {
+  showScreen(game);
+
+  resizeCanvas();
+
+  ctx.fillStyle = "white";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  timeLeft = 60;
+  updateTimer();
+
+  startTimer();
+
+  /*
+    Browsers allow music to start here because
+    this function is triggered by the START button.
+  */
+  if (musicEnabled) {
+    bgMusic.currentTime = 0;
+    bgMusic.loop = true;
+
+    bgMusic.play().catch(() => {});
   }
 }
 
-async function finishGame() {
-  submitted = true;
-  const image = canvas.toDataURL("image/png");
-  preview.src = image;
-  status.textContent = "Sending drawing...";
-  show(done);
+/* -------------------------
+   FINISH GAME
+------------------------- */
 
-  const blob = await (await fetch(image)).blob();
-  const form = new FormData();
-  form.append("drawing", blob, "one-minute-drawing.png");
+function finishDrawing() {
+  stopTimer();
 
-  try {
-    const response = await fetch("/api/submit", { method: "POST", body: form });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || "Upload failed");
+  drawing = false;
 
-    status.textContent = result.demo
-      ? "✅ Drawing received! Connect Discord to post it to #drawings."
-      : "✅ Drawing posted to Discord!";
-  } catch (err) {
-    console.error(err);
-    status.textContent = "⚠️ Drawing finished, but it couldn't be sent to Discord.";
-  }
+  bgMusic.pause();
+  bgMusic.currentTime = 0;
+
+  showScreen(finished);
 }
+
+/* -------------------------
+   BUTTONS
+------------------------- */
+
+startBtn.addEventListener("click", startGame);
+
+againBtn.addEventListener("click", () => {
+  startGame();
+});
+
+/* -------------------------
+   INITIALIZE
+------------------------- */
+
+showScreen(home);
+updateTimer();
 
 window.addEventListener("resize", () => {
-  // Don't resize while drawing because it would erase the canvas.
+  if (!game.classList.contains("hidden")) {
+    resizeCanvas();
+  }
 });
