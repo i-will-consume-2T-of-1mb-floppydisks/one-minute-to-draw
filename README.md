@@ -1,21 +1,19 @@
 # 1 Minute to Draw!
 
-Files are intentionally at the root of the repo.
+A simple 60-second drawing game with a terminal-style start screen, name entry, dark/light mode, looping background music, and Discord submission.
 
-## Required files
-- index.html
-- style.css
-- app.js
-- server.js
-- package.json
-- music.mp3
-- smiley.jpeg
+## Files
+- `index.html` — screens and controls
+- `style.css` — terminal UI and themes
+- `app.js` — drawing, timer, music, theme, and submission logic
+- `server.js` — Express upload endpoint and Discord bot posting
+- `package.json` — Render/Node dependencies
+- `music.mp3` — background music
+- `smiley.jpeg` — hand-drawn smiley
 
-## Render
-Build command: `npm install`
-Start command: `npm start`
+## Render environment variables
+Set these in Render, not in GitHub:
+- `DISCORD_TOKEN`
+- `DISCORD_CHANNEL_ID`
 
-Set this Render environment variable:
-`DISCORD_WEBHOOK_URL` = your Discord webhook URL for the drawings channel.
-
-Never put a Discord bot token or webhook URL in client-side JavaScript.
+The Discord bot needs permission to view and send messages in the target channel and attach files.

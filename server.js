@@ -34,6 +34,8 @@ app.post("/api/submit", upload.single("drawing"), async (req, res) => {
     return res.json({ ok: true, demo: true, message: "Drawing received! Discord is not configured yet." });
   }
 
+  const name = String(req.body.name || "Anonymous").trim().replace(/\s+/g, " ").slice(0, 20) || "Anonymous";
+
   try {
     const channel = await discordClient.channels.fetch(DISCORD_CHANNEL_ID);
     if (!channel?.isTextBased()) throw new Error("Discord channel was not found or is not text-based.");
@@ -43,7 +45,7 @@ app.post("/api/submit", upload.single("drawing"), async (req, res) => {
     });
 
     await channel.send({
-      content: "🎨 **New 1 Minute Drawing!**\n⏱️ Challenge completed in 60 seconds.",
+      content: `🎨 **New 1 Minute Drawing!**\n👤 **Artist:** ${name}\n⏱️ Challenge completed in 60 seconds.`,
       files: [attachment]
     });
 
