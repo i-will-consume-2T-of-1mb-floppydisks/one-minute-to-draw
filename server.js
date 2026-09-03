@@ -1,61 +1,51 @@
-import express from "express";
-import multer from "multer";
-import { Client, GatewayIntentBits, AttachmentBuilder } from "discord.js";
+const express = require("express");
+const multer = require("multer");
+const FormData = require("form-data");
+const fetch = require("node-fetch");
+const path = require("path");
 
 const app = express();
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 8 * 1024 * 1024 }
-});
+const upload = multer({ storage: multer.memoryStorage() });
 
-app.use(express.static("."));
-
-const PORT = process.env.PORT || 3000;
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-const DISCORD_CHANNEL_ID = process.env.DISCORD_CHANNEL_ID;
-
-let discordClient = null;
-
-if (DISCORD_TOKEN && DISCORD_CHANNEL_ID) {
-  discordClient = new Client({ intents: [GatewayIntentBits.Guilds] });
-  discordClient.once("ready", () => console.log(`Discord bot logged in as ${discordClient.user.tag}`));
-  discordClient.login(DISCORD_TOKEN).catch(err => {
-    console.error("Discord login failed:", err.message);
-    discordClient = null;
-  });
-} else {
-  console.log("Discord is not configured yet. The site will still work in demo mode.");
-}
+app.use(express.static(path.join(__dirname)));
 
 app.post("/api/submit", upload.single("drawing"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No drawing received." });
-
-  if (!discordClient || !DISCORD_CHANNEL_ID) {
-    return res.json({ ok: true, demo: true, message: "Drawing received! Discord is not configured yet." });
-  }
-
-  const name = String(req.body.name || "Anonymous").trim().replace(/\s+/g, " ").slice(0, 20) || "Anonymous";
-
   try {
-    const channel = await discordClient.channels.fetch(DISCORD_CHANNEL_ID);
-    if (!channel?.isTextBased()) throw new Error("Discord channel was not found or is not text-based.");
+    if (!req.file) return res.status(400).json({ error: "No drawing uploaded." });
 
-    const attachment = new AttachmentBuilder(req.file.buffer, {
-      name: "one-minute-drawing.png"
+    const webhook = process.env.DISCORD_WEBHOOK_URL;
+    if (!webhook) return res.status(500).json({ error: "Discord webhook is not configured." });
+
+    const name = String(req.body.name || "Anonymous").slice(0, 20);
+
+    const form = new FormData();
+    form.append("payload_json", JSON.stringify({
+      content:
+        `🎨 **New 1 Minute Drawing!**\n` +
+        `👤 **Artist:** ${name}\n` +
+        `⏱️ Challenge completed in 60 seconds.`
+    }));
+    form.append("file", req.file.buffer, {
+      filename: "one-minute-drawing.png",
+      contentType: req.file.mimetype || "image/png"
     });
 
-    await channel.send({
-      content: `🎨 **New 1 Minute Drawing!**\n👤 **Artist:** ${name}\n⏱️ Challenge completed in 60 seconds.`,
-      files: [attachment]
+    const response = await fetch(webhook, {
+      method: "POST",
+      body: form,
+      headers: form.getHeaders()
     });
 
-    res.json({ ok: true, demo: false });
+    if (!response.ok) {
+      return res.status(502).json({ error: "Discord rejected the drawing." });
+    }
+
+    res.json({ ok: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Could not send the drawing to Discord." });
+    res.status(500).json({ error: "Upload failed." });
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`1 Minute to Draw is running at http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`1 Minute to Draw running on port ${PORT}`));

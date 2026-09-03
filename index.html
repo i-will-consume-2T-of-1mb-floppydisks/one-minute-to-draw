@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>1 Minute to Draw!</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="terminal">
+    <div class="terminal-bar">
+      <span>●</span><span>●</span><span>●</span>
+      <span class="terminal-title">1-minute-to-draw.exe</span>
+    </div>
+
+    <section id="startScreen" class="screen">
+      <img id="smiley" src="smiley.jpeg" alt="hand drawn smiley" onerror="this.style.display='none'">
+      <h1>1 MINUTE TO DRAW!</h1>
+      <p>&gt; DRAWING SESSION READY_</p>
+      <p>&gt; TIME LIMIT: 60 SECONDS</p>
+
+      <div class="theme-controls">
+        <button id="darkModeBtn">[ DARK MODE ]</button>
+        <button id="lightModeBtn">[ LIGHT MODE ]</button>
+      </div>
+
+      <label for="nameInput">&gt; ENTER YOUR NAME:</label>
+      <input id="nameInput" type="text" maxlength="20" placeholder="Your name..." autocomplete="off">
+
+      <button id="startBtn" class="start-btn">&gt; START DRAWING_</button>
+    </section>
+
+    <section id="gameScreen" class="screen hidden">
+      <div class="game-header">
+        <span>&gt; ARTIST: <b id="artistName"></b></span>
+        <span id="timer">01:00</span>
+      </div>
+
+      <div class="toolbar">
+        <label>COLOR <input id="colorInput" type="color" value="#000000"></label>
+        <label>SIZE <input id="sizeInput" type="range" min="2" max="40" value="8"></label>
+        <button id="eraserBtn">ERASER</button>
+        <button id="clearBtn">CLEAR</button>
+        <button id="musicBtn">MUSIC: ON</button>
+      </div>
+
+      <div class="canvas-wrap">
+        <canvas id="drawingCanvas"></canvas>
+        <canvas id="flameCanvas" aria-hidden="true"></canvas>
+      </div>
+
+      <p id="status">&gt; DRAW!</p>
+    </section>
+
+    <section id="doneScreen" class="screen hidden">
+      <h1>DRAWING COMPLETE!</h1>
+      <p>&gt; ARTIST: <b id="doneArtist"></b></p>
+      <p id="submitStatus">&gt; SENDING DRAWING...</p>
+      <button id="againBtn">&gt; DRAW AGAIN_</button>
+    </section>
+  </main>
+
+  <audio id="bgMusic" src="music.mp3" preload="auto" loop></audio>
+  <script src="app.js"></script>
+</body>
+</html>
